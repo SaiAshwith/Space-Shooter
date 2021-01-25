@@ -6,7 +6,7 @@ dis_w=700
 dis_h=700
 
 gameDisplay = pygame.display.set_mode((dis_w,dis_h))
-pygame.display.set_caption('Space Adventure')
+pygame.display.set_caption('Space Shooter')
 
 clock = pygame.time.Clock()
 crashed = False
@@ -44,6 +44,10 @@ class bullets(pygame.sprite.Sprite):
     def update(self):
         self.rect.y+=self.speed
         if self.rect.y+24<0:
+            global score
+            global scorestr
+            score-=2
+            scorestr=Scorefont.render('SCORE : {}  Lives left : {}'.format(score,lives),True,(255,255,255))
             self.kill() 
 
 ####################
@@ -64,14 +68,13 @@ class asters(pygame.sprite.Sprite) :
 
     def update(self) :
         self.rotate()
-        #print(self.image.get_rect())
-        #print(self.rect.y)
         self.rect.y+=self.speedy
         if self.rect.y>700:
+            global score
+            global scorestr
+            score-=2
+            scorestr=Scorefont.render('SCORE : {}  Lives left : {}'.format(score,lives),True,(255,255,255))
             self.stagain()
-        #if self.rect.bottom>705:
-        #    global slowmo
-        #    slowmo=1
     
     def rotate(self):
         now=pygame.time.get_ticks()
@@ -142,7 +145,6 @@ mod5=pygame.image.load('meteorBrown_med2.png').convert_alpha()
 a5=asters(mod5)
 Ast.add(a1,a2,a3,a4,a5)
 
-
 ship=player()
 Ship=pygame.sprite.Group()
 Ship.add(ship)
@@ -159,11 +161,113 @@ bul_time=0
 smst=0
 slowmo=0
 move=0
+
+fire=pygame.image.load('menu.png').convert_alpha()
+font=pygame.font.Font('pac/Pacifico.ttf',40)
+font1=pygame.font.Font('pac/Pacifico.ttf',20)
+name=font.render('SPACE SHOOTER',True,(255,0,0))
+Scorefont=pygame.font.Font('amatic/Amatic-Bold.ttf',30)
+score=0
+lives=5
+scorestr=Scorefont.render('SCORE : {}  Lives left : {}'.format(score,lives),True,(255,255,255))
+
+
+#Pause menu
+def pausemenu(Ast,Ship,Bullets,Explosions,scorestr):
+    yet=True
+    col=0
+    while yet:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+            elif event.type == pygame.KEYDOWN :
+                if event.key==pygame.K_ESCAPE:
+                    yet=False
+                elif event.key == pygame.K_q:
+                    exit()
+        col+=1
+        if col//20 % 2 == 0:
+            ins=font.render('Resume : Esc    Quit : Q',True,(255,255,0))
+        else:
+            ins=font.render('Resume : Esc    Quit : Q',True,(255,0,255))
+        Ast.draw(gameDisplay)
+        Ship.draw(gameDisplay)
+        Bullets.draw(gameDisplay)
+        Explosions.draw(gameDisplay)
+        gameDisplay.blit(scorestr,(10,10))
+        gameDisplay.blit(ins,(130,330))
+        pygame.display.update()
+        clock.tick(FPS)
+
+#Gameover
+def gameover(BGImg,scorestr):
+    ft=pygame.time.get_ticks()
+    nt=0
+    yet=True
+    font=pygame.font.Font('amatic/Amatic-Bold.ttf',80)
+    st=font.render('GAME OVER',True,(255,255,255))
+    while yet:
+        nt=pygame.time.get_ticks()
+        if nt-ft>3000:
+            break
+        
+        gameDisplay.blit(BGImg,(0,0))
+        gameDisplay.blit(scorestr,(230,250))
+        gameDisplay.blit(st,(220,310))
+        pygame.display.update()
+        clock.tick(FPS)
+    startmenu()
+
+
+
+#Start menu
+def startmenu():
+    col=0
+    yet=True
+    while yet:
+        a=0
+        gameDisplay.blit(BGImg,(0,a))
+        gameDisplay.blit(BGImg1,(0,a-dis_h))
+        a+=1
+        a%=dis_h
+        gameDisplay.blit(fire,(50,70))
+        gameDisplay.blit(name,(170,230))
+        col+=1
+        if col//20 % 2 == 0:
+            ins=font1.render('Click Enter to play',True,(255,255,0))
+            ins1=font1.render('A,D : Move    SPACE : Shoot',True,(255,0,255))
+            ins2=font1.render('Esc : Pause',True,(255,255,0))
+        else:
+            ins=font1.render('Click Enter to play',True,(255,0,255))
+            ins1=font1.render('A,D : Move    SPACE : Shoot',True,(255,255,0))
+            ins2=font1.render('Esc : Pause',True,(255,0,255))
+        gameDisplay.blit(ins,(280,500))
+        gameDisplay.blit(ins1,(220,560))
+        gameDisplay.blit(ins2,(300,620))
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+            elif event.type == pygame.KEYDOWN :
+                if event.key==pygame.K_RETURN:
+                    yet=False
+        clock.tick(FPS)
+
+###################################
+startmenu()
 while not crashed:
+
+#moving background
+    gameDisplay.blit(BGImg,(0,a))
+    gameDisplay.blit(BGImg1,(0,a-dis_h))
+    a+=1
+    a%=dis_h
+    
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             crashed = True
-
+    
 #ship movement and bullet creation
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a :
@@ -176,6 +280,8 @@ while not crashed:
                     bul_time=nw
                     bul=bullets(ship)
                     Bullets.add(bul)
+            elif event.key == pygame.K_ESCAPE :
+                pausemenu(Ast,Ship,Bullets,Explosions,scorestr)
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a and move==-7 :
                 move=0
@@ -192,16 +298,29 @@ while not crashed:
             FPS=20
         if slowmo==2:
             smet=pygame.time.get_ticks()
-            if smet>smst+1000:
-                FPS=60
-                slowmo=0
+            if smet>smst+300:
                 for i in Ast:
                     expl=explosion(i)
                     Explosions.add(expl)
-                Explosions.update()
-                Explosions.draw(gameDisplay)
+                    slowmo=3
+        if slowmo==3:
+            smet=pygame.time.get_ticks()
+            if smet>smst+1000:
+                FPS=60
+                slowmo=0
+                if lives==0:
+                    Bullets.empty()
+                    for i in Ast:
+                        i.stagain()
+                    Explosions.empty()
+                    gameover(BGImg,scorestr)
+                    startmenu()
+                    lives=5
+                    score=0
+                    scorestr=Scorefont.render('SCORE : {}  Lives left : {}'.format(score,lives),True,(255,255,255))
                 ship=player()
                 Ship.add(ship)
+
 
 #Blasts
     blasts=pygame.sprite.groupcollide(Ast,Bullets,False,True)
@@ -209,6 +328,8 @@ while not crashed:
         if len(blasts[rock])>0:
             expl=explosion(rock)
             Explosions.add(expl)
+            score+=1
+            scorestr=Scorefont.render('SCORE : {}  Lives left : {}'.format(score,lives),True,(255,255,255))
 
     blasts=pygame.sprite.spritecollide(ship,Ast,False,pygame.sprite.collide_rect_ratio(0.7))
     if len(blasts)>0:
@@ -218,16 +339,14 @@ while not crashed:
                 Explosions.add(expl)
         expl=explosion(ship)
         Explosions.add(expl)
+        if ship.died == 0:
+            lives-=1
+        scorestr=Scorefont.render('SCORE : {}  Lives left : {}'.format(score,lives),True,(255,255,255))
         ship.died=1
         slowmo=1
 
-#moving background
-    gameDisplay.blit(BGImg,(0,a))
-    gameDisplay.blit(BGImg1,(0,a-dis_h))
-    a+=1
-    a%=dis_h
 
-#Render updates
+#Display updates
     Ast.update()
     Bullets.update()
     Explosions.update()
@@ -235,9 +354,9 @@ while not crashed:
     Ship.draw(gameDisplay)
     Bullets.draw(gameDisplay)
     Explosions.draw(gameDisplay)
+    gameDisplay.blit(scorestr,(10,10))
     pygame.display.update()
     clock.tick(FPS)
-    print(len(Ship))
 
 pygame.quit()
 quit()
